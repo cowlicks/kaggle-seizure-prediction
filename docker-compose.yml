@@ -1,0 +1,8 @@
+app:
+  command: sh run_jupyter.sh /
+  build: .
+  volumes:
+   - ".:/data"
+  ports:
+   - "8888:8888"
+   - "6006:6006"
