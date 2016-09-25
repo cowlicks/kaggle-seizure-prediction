@@ -14,29 +14,29 @@ from sklearn.svm import SVC
 
 count = 0
 
-def mat_to_arr(fn):    
+def arr_from_mat(fn):
     return loadmat(fn, struct_as_record=False)['dataStruct'][0, 0].data.T
 
-def one_mat_to_da(path):
+def da_from_one_mat(path):
     global count
     name = 'mat-da' + str(count)
     count += 1
     chunks = ((16,), (240000,))
-    return da.Array({(name, 0, 0): (mat_to_arr, path)}, name, chunks)
+    return da.Array({(name, 0, 0): (arr_from_mat, path)}, name, chunks)
 
-def mat_to_da(pattern):
+def da_from_mats(pattern):
     ''' Convert datafiles matching pattern to a dask array.'''
     paths = sorted(glob(pattern))
-    return da.stack([one_mat_to_da(p) for p in paths])
+    return da.stack([da_from_one_mat(p) for p in paths])
 
 def feature(data):
-    return data.var(axis=2)
+    return da.mean(data**2, axis=2)**0.5
     
 def features_from_mats(pattern):
     '''
     Get features from files matching a given pattern.
     '''
-    da = mat_to_da(pattern)
+    da = da_from_mats(pattern)
     return feature(da)
 
 
@@ -51,9 +51,7 @@ if __name__ == '__main__':
     y = np.concatenate([np.zeros(baseline.shape[0]),  # baseline = 0
                         np.ones(preictal.shape[0])])  # preictal = 1
 
-    X_train, X_test, y_train, y_test = cross_validation.train_test_split(
-            X, y, test_size=0.4, random_state=0)
+    clf = SVC(class_weight='balanced')
 
-    clf = SVC()
-    clf.fit(X_train, y_train)
-    print(clf.score(X_test, y_test))  # 0.8733!!!
+    scores = cross_validation.cross_val_score(clf, X, y, n_jobs=-1)
+    print("Accuracy: %0.2f (+/- %0.2f)" % (scores.mean(), scores.std() * 2))  # Accuracy: 0.89 (+/- 0.00)
