@@ -1,5 +1,5 @@
 app:
-  command: sh run_jupyter.sh /
+  command: sh /run_jupyter.sh /data/
   build: .
   volumes:
    - ".:/data"
